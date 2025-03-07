@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cyberpunk Group Chat</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 2px solid #5a189a;
+            border-radius: 8px;
+            background-color: #0f0f1a;
+            box-shadow: 0 0 15px #5a189a;
+        }
+
+        h1 {
+            text-align: center;
+            color: #c77dff;
+        }
+
+        input, button {
+            width: calc(100% - 24px);
+            margin: 10px auto;
+            padding: 10px;
+            border: 1px solid #5a189a;
+            border-radius: 4px;
+            background-color: #3e206d;
+            color: #e0e0e0;
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background-color: #5a189a;
+        }
+
+        #chat-box {
+            height: 500px;
+            overflow-y: scroll;
+            border: 1px solid #5a189a;
+            padding: 10px;
+            margin: 10px 0;
+            background-color: #21213a;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            background-color: #3e206d;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+        }
+
+        #chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #chat-header button {
+            width: auto;
+            padding: 5px 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+
+            #chat-box {
+                height: 400px;
+            }
+
+            input, button {
+                padding: 8px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            #chat-box {
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="login-container" class="container">
+        <h1>Cyberpunk Group Chat</h1>
+        <form id="login-form">
+            <input type="text" id="username" placeholder="Enter your username" required>
+            <input type="password" id="passkey" placeholder="Enter your passkey" required>
+            <button type="submit">Login</button>
+        </form>
+        <p id="login-error" class="error"></p>
+    </div>
+
+    <div id="chat-container" class="container hidden">
+        <div id="chat-header">
+            <h1>Welcome, <span id="user-display"></span></h1>
+            <button id="logout">Logout</button>
+        </div>
+        <div id="chat-box">
+            <ul id="messages"> </ul>
+        </div>
+        <form id="message-form">
+            <input type="text" id="message" placeholder="Type your message here..." required>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+             
+
+
+    <script>
+        const socket = io();
+    
+        const loginContainer = document.getElementById('login-container');
+        const chatContainer = document.getElementById('chat-container');
+        const loginForm = document.getElementById('login-form');
+        const userDisplay = document.getElementById('user-display');
+        const loginError = document.getElementById('login-error');
+        const logoutButton = document.getElementById('logout');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message');
+        const messages = document.getElementById('messages');
+    
+        let currentUser = null;
+    
+        // Handle login form submission
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim().toUpperCase();
+            const passkey = document.getElementById('passkey').value.trim();
+    
+            // Send login credentials to the server
+            socket.emit('login', { username, passkey });
+        });
+    
+        // Handle login success
+        socket.on('loginSuccess', ({ username }) => {
+            currentUser = username;
+            userDisplay.textContent = username;
+            loginContainer.classList.add('hidden');
+            chatContainer.classList.remove('hidden');
+            loginError.textContent = '';
+        });
+    
+        // Handle login error
+        socket.on('loginError', (error) => {
+            loginError.textContent = error;
+        });
+    
+        // Handle logout
+        logoutButton.addEventListener('click', () => {
+            currentUser = null;
+            location.reload(); // Simulates logout by refreshing the page
+        });
+    
+        // Handle message form submission
+        messageForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const message = messageInput.value.trim();
+            if (message) {
+                // Send the message to the server
+                socket.emit('sendMessage', message);
+                messageInput.value = '';
+            }
+        });
+    
+        // Display incoming messages
+        socket.on('newMessage', ({ username, message }) => {
+            const li = document.createElement('li');
+            li.textContent = `${username}: ${message}`;
+            messages.appendChild(li);
+            messages.scrollTop = messages.scrollHeight;
+        });
+    </script>
+    
+</body>
+</html>
